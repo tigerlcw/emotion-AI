@@ -34,3 +34,14 @@ print(keyfacial_df)
 
 print(keyfacial_df.info())
 # 이미지를 제외하고 모든 데이터 타입은 float64로 되어있다.
+
+print(keyfacial_df.isnull().sum())
+# null 값 체크
+
+# 람다 함수를 이용 데이터를 reshape 해준다. 처리가 편하기 위해 96*96 픽셀 형태로 바꿔준다.
+# 처리할 때는 'Image' 열을 이용
+keyfacial_df['Image'] = keyfacial_df['Image'].apply(
+    lambda x: np.fromstring(x, dtype=int, sep=' ').reshape(96, 96))
+
+# reshape 확인
+print(keyfacial_df['Image'][0].shape)  # 0번째 행을 가져와 96 * 96 변경되었는지 확인
