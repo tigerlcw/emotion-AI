@@ -107,3 +107,159 @@ print(augmented_df.shape)  # 복사된 결과 확인 2140 + 2140 + 2140 = 6420
 plt.imshow(keyfacial_df_copy['Image'][0], cmap='gray')
 for j in range(1, 31, 2):
     plt.plot(keyfacial_df_copy.loc[0][j-1], keyfacial_df_copy.loc[0][j], 'rx')
+
+# 데이터 정규화 및 훈련 데이터 준비 수행
+img = augmented_df[:, 30]  # 모든 이미지 가져오기
+img = img/255.  # 가져온 다음 이미지 정규화 작업
+
+# 비어있는 배열 생성 shape (x, 96, 96, 1)
+X = np.empty((len(img), 96, 96, 1))
+
+# 가지고 있는 모든 데이터 크기를 96*96로 확장 (배치 포맷 형태로)
+for i in range(len(img)):
+    X[i, ] = np.expand_dims(img[i], axis=2)
+
+# array type을 float32로 변경
+X = np.asarray(X).astype(np.float32)
+print(X.shape)
+
+# y 좌표 작업
+y = augmented_df[:, :30]
+y = np.asarray(y).astype(np.float32)
+print(y.shape)
+
+# 데이터를 학습 데이터와 테스트 데이터로 분할
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+# 20% 테스트 / 80% 학습
+
+# 주요 얼굴 포인트 탐지를 위한 심층 잔차 신경망 구축
+
+# 잔차 블럭 정의
+
+
+def res_block(X, filter, stage):
+    # Convolutional_block
+    X_copy = X
+
+    f1, f2, f3 = filter
+
+    # Main Path
+    # 합성 곱 이용
+    X = Conv2D(f1, (1, 1), strides=(1, 1), name='res_'+str(stage) +
+               '_conv_a', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = MaxPool2D((2, 2))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_conv_a')(X)
+    X = Activation('relu')(X)
+
+    X = Conv2D(f2, kernel_size=(3, 3), strides=(1, 1), padding='same', name='res_' +
+               str(stage)+'_conv_b', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_conv_b')(X)
+    X = Activation('relu')(X)
+
+    X = Conv2D(f3, kernel_size=(1, 1), strides=(1, 1), name='res_' +
+               str(stage)+'_conv_c', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_conv_c')(X)
+
+    # Short path
+    X_copy = Conv2D(f3, kernel_size=(1, 1), strides=(1, 1), name='res_' +
+                    str(stage)+'_conv_copy', kernel_initializer=glorot_uniform(seed=0))(X_copy)
+    X_copy = MaxPool2D((2, 2))(X_copy)
+    X_copy = BatchNormalization(
+        axis=3, name='bn_'+str(stage)+'_conv_copy')(X_copy)
+
+    # ADD
+    X = Add()([X, X_copy])
+    X = Activation('relu')(X)
+
+    # Identity Block 1
+    X_copy = X
+
+    # Main Path
+    X = Conv2D(f1, (1, 1), strides=(1, 1), name='res_'+str(stage) +
+               '_identity_1_a', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_identity_1_a')(X)
+    X = Activation('relu')(X)
+
+    X = Conv2D(f2, kernel_size=(3, 3), strides=(1, 1), padding='same', name='res_' +
+               str(stage)+'_identity_1_b', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_identity_1_b')(X)
+    X = Activation('relu')(X)
+
+    X = Conv2D(f3, kernel_size=(1, 1), strides=(1, 1), name='res_'+str(stage) +
+               '_identity_1_c', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_identity_1_c')(X)
+    # Short path에서는 그냥 Identity mapping만 하면 된다.
+
+    # ADD (X, X_copy 합침)
+    X = Add()([X, X_copy])
+    X = Activation('relu')(X)
+
+    # Identity Block 2
+    X_copy = X
+
+    # Main Path
+    X = Conv2D(f1, (1, 1), strides=(1, 1), name='res_'+str(stage) +
+               '_identity_2_a', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_identity_2_a')(X)
+    X = Activation('relu')(X)
+
+    X = Conv2D(f2, kernel_size=(3, 3), strides=(1, 1), padding='same', name='res_' +
+               str(stage)+'_identity_2_b', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_identity_2_b')(X)
+    X = Activation('relu')(X)
+
+    X = Conv2D(f3, kernel_size=(1, 1), strides=(1, 1), name='res_'+str(stage) +
+               '_identity_2_c', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name='bn_'+str(stage)+'_identity_2_c')(X)
+
+    # ADD
+    X = Add()([X, X_copy])
+    X = Activation('relu')(X)
+    # 둘을 합한 다음 활성화 함수에 적용하면, 기본적으로 잔차 블록을 구축한다.
+
+    return X
+
+
+input_shape = (96, 96, 1)
+
+# Input tensorflow shape
+X_input = Input(input_shape)
+
+# Zero-padding
+X = ZeroPadding2D((3, 3))(X_input)
+
+# 1 - stage
+X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1',
+           kernel_initializer=glorot_uniform(seed=0))(X)
+X = BatchNormalization(axis=3, name='bn_conv1')(X)
+X = Activation('relu')(X)
+X = MaxPooling2D((3, 3), strides=(2, 2))(X)
+
+# 2 - stage
+X = res_block(X, filter=[64, 64, 256], stage=2)
+
+# 3 - stage
+X = res_block(X, filter=[128, 128, 512], stage=3)
+
+
+# Average Pooling
+X = AveragePooling2D((2, 2), name='Averagea_Pooling')(X)
+
+# Final layer
+# Dense 인공 신경망 구축
+# 1. 특성 맵들을 펼친다.
+X = Flatten()(X)
+# 2. Dense()
+X = Dense(4096, activation='relu')(X)
+# 3. Dropout() -> 네트워크 일반화 성능에 도움을 준다.
+X = Dropout(0.2)(X)  # 뉴런 20% 드롭아웃
+# 4. Dense()
+X = Dense(2048, activation='relu')(X)
+# 5. Dropout()
+X = Dropout(0.1)(X)  # 뉴런 10% 드롭아웃
+# 6. Dense()
+X = Dense(30, activation='relu')(X)
+
+# 첫 번째 나만의 모델 생성
+model_1_facialKeyPoints = Model(inputs=X_input, outputs=X)
+model_1_facialKeyPoints.summary()  # 모델 요약본 출력
