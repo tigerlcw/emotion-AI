@@ -26,9 +26,11 @@ from tensorflow.keras.layers import *
 from tensorflow.keras import backend as K
 from keras import optimizers
 import matplotlib.pyplot as plt
+from matplotlib import rc, font_manager  # 한글 폰트 사용 가능하게 설정
 from sklearn.model_selection import train_test_split
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # CPU AVX 연산 로그 강제 숨키기
+rc('font', family="NanumGothic")  # 나눔고딕 사용
 
 # 데이터 셋 로드
 keyfacial_df = pd.read_csv('data/data.csv')
@@ -283,3 +285,63 @@ model_1_facialKeyPoints.compile(
 # 모델 평가
 result = model_1_facialKeyPoints.evaluate(X_test, y_test)
 print("모델 정확도 : {}".format(result[1]))
+
+# 얼굴 표정 감지
+'''
+0 = 화남
+1 = 혐오
+2 = 슬픔
+3 = 행복
+4 = 놀람
+'''
+
+# 표정 데이터에 대한 csv 파일 읽기
+facialexpression_df = pd.read_csv('data/icml_face_data.csv')
+print(facialexpression_df)  # 48 * 48 픽셀 이미지 데이터
+
+
+# 문자열 형식의 픽셀 값을 배열 형식으로 변환하는 함수
+def string2array(x):
+    return np.array(x.split(' ')).reshape(48, 48, 1).astype('float32')
+
+
+# Resize image (48, 48) -> (96, 96)
+def resize(x):
+
+    img = x.reshape(48, 48)
+    return cv2.resize(img, dsize=(96, 96), interpolation=cv2.INTER_CUBIC)
+    # 추후 하나의 이미지를 두 모델에 학습 시키고 예측을 만들 예정
+
+
+# 데이터를 가져와 string2array() 실행 -> array 형태로 바뀜
+# csv 데이터 pixels 앞에 공백이 있어 한 칸 띄었음
+facialexpression_df[' pixels'] = facialexpression_df[' pixels'].apply(
+    lambda x: string2array(x))
+
+# resize
+facialexpression_df[' pixels'] = facialexpression_df[' pixels'].apply(
+    lambda x: resize(x))
+
+# facialexpression_df 확인
+print(facialexpression_df.head())
+
+# data_frame의 모양 확인
+print(facialexpression_df.shape)  # 24568행, 2열
+
+# 데이터 프레임에 null 값이 있는지 확인
+print(facialexpression_df.isnull().sum())
+
+# 감정 분석 후 결과를 위한 라벨링 작업
+label_to_text = {0: '화남', 1: '혐오', 2: '슬픔', 3: '행복', 4: '놀람'}
+
+# 이미지 시각화 및 레이블 표시
+emotions = [0, 1, 2, 3, 4]
+
+# 각 감정마다 하나씩 분석 결과 출력
+for i in emotions:
+    data = facialexpression_df[facialexpression_df['emotion'] == i][:1]
+    img = data[' pixels'].item()
+    img = img.reshape(96, 96)  # 이미지 사이즈 96 * 96 지정
+    plt.figure()
+    plt.title(label_to_text[i])
+    plt.imshow(img, cmap='gray')  # 회색 지정
