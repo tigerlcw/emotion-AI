@@ -28,6 +28,8 @@ from keras import optimizers
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # CPU AVX 연산 로그 강제 숨키기
+
 # 데이터 셋 로드
 keyfacial_df = pd.read_csv('data/data.csv')
 # 해당 데이터 셋에는 왼쪽 눈, 오른쪽 눈, 코, 윗입술, 아랫입술 등 15개의 인식 포인트가 있다.
@@ -277,3 +279,7 @@ adam = tf.keras.optimizers.Adam(
     learning_rate=0.0001, beta_1=0.9, beta_2=0.999, amsgrad=False)
 model_1_facialKeyPoints.compile(
     loss="mean_squared_error", optimizer=adam, metrics=['accuracy'])
+
+# 모델 평가
+result = model_1_facialKeyPoints.evaluate(X_test, y_test)
+print("모델 정확도 : {}".format(result[1]))
