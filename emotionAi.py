@@ -1,5 +1,7 @@
 # 프로젝트에 필요한 라이브러리 셋팅
 # Tensorflow / keras API 활용
+import random
+import copy  # 복사 라이브러리
 import pandas as pd
 import numpy as np
 import os
@@ -61,3 +63,47 @@ for i in range(9):
 
 # 이미지 증강 작업
 # 현재 가지고 있는 입력 데이터에 의존하지 않기 위해 추가적인 데이터 세트를 생성한다.
+keyfacial_df_copy = copy.copy(keyfacial_df)
+
+columns = keyfacial_df_copy.columns[:-1]  # 이미지를 제외한 모든 데이터 복사
+print(columns)  # index 확인
+
+# 이미지 증강 작업 - [1] 좌우 반전
+keyfacial_df_copy['Image'] = keyfacial_df_copy['Image'].apply(  # 복사 한 후 keyfacial_df_copy의 'Image' 열에 저장
+    lambda x: np.flip(x, axis=1))  # 람다 함수 적용해 x 입력 값에 실제 픽셀 값을 넣고 axis=1 을 이용해 y 축 뒤집기
+
+# y축 값은 같으나 x축 값이 다르므로 x축 값만 선택 가능하게 반복문 작성
+for i in range(len(columns)):
+    if i % 2 == 0:
+        keyfacial_df_copy[columns[i]] = keyfacial_df_copy[columns[i]].apply(
+            lambda x: 96. - float(x))  # 데이터 포인트 뒤집기
+
+# 좌우 반전 이미지 확인 (원본 이미지)
+plt.imshow(keyfacial_df['Image'][0], cmap='gray')  # 0번째 행
+for j in range(1, 31, 2):
+    plt.plot(keyfacial_df.loc[0][j-1], keyfacial_df.loc[0][j], 'rx')
+
+# 좌우 반전 이미지 확인 (변경된 이미지)
+plt.imshow(keyfacial_df_copy['Image'][0], cmap='gray')  # 0번째 행
+for j in range(1, 31, 2):
+    plt.plot(keyfacial_df_copy.loc[0][j-1], keyfacial_df_copy.loc[0][j], 'rx')
+
+# 좌우 반전 데이터 프레임 생성
+augmented_df = np.concatenate(
+    (keyfacial_df, keyfacial_df_copy))  # concatenate 배열 연결
+
+print(augmented_df.shape)  # 복사된 결과 확인 2140 + 2140 = 4280
+
+# 이미지 증강 작업 - [2] 밝기 변경
+# x의 픽셀 값을 가져온 후 픽셀 값을 곱한다. 곱하면 이미지의 밝기가 높아진다.
+# 픽셀 범위는 0~255 사이로 해야한다.
+keyfacial_df_copy = copy.copy(keyfacial_df)
+keyfacial_df_copy['Image'] = keyfacial_df_copy['Image'].apply(
+    lambda x: np.clip(random.uniform(1.5, 2) * x, 0.0, 255.0))  # 1.5부터 2 사이의 랜덤 숫자를 고르고 곱한다.
+augmented_df = np.concatenate((augmented_df, keyfacial_df_copy))
+print(augmented_df.shape)  # 복사된 결과 확인 2140 + 2140 + 2140 = 6420
+
+# 이미지 밝기 증가 (확인)
+plt.imshow(keyfacial_df_copy['Image'][0], cmap='gray')
+for j in range(1, 31, 2):
+    plt.plot(keyfacial_df_copy.loc[0][j-1], keyfacial_df_copy.loc[0][j], 'rx')
