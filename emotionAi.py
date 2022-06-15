@@ -45,3 +45,19 @@ keyfacial_df['Image'] = keyfacial_df['Image'].apply(
 
 # reshape 확인
 print(keyfacial_df['Image'][0].shape)  # 0번째 행을 가져와 96 * 96 변경되었는지 확인
+
+# 이미지 시각화 작업
+# 3행 3열 총 9개의 랜덤 이미지 출력
+fig = plt.figure(figsize=(20, 20))  # figure 사이즈 설정
+
+for i in range(9):
+    ax = fig.add_subplot(3, 3, i + 1)
+    i = np.random.randint(1, len(keyfacial_df))
+    plt.imshow(keyfacial_df['Image'][i], cmap='gray')  # 컬러는 회색으로 지정
+    for j in range(1, 31, 2):
+        plt.plot(keyfacial_df.loc[i][j-1],
+                 keyfacial_df.loc[i][j], 'rx')  # 얼굴 이미지의 행 지정 후 필요한 정보 출력
+        # 주요 얼굴 포인트 표시 후 시각화 출력
+
+# 이미지 증강 작업
+# 현재 가지고 있는 입력 데이터에 의존하지 않기 위해 추가적인 데이터 세트를 생성한다.
