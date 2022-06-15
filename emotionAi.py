@@ -1,5 +1,6 @@
 # 프로젝트에 필요한 라이브러리 셋팅
 # Tensorflow / keras API 활용
+from keras.utils import to_categorical  # 카테고리화
 import random
 import copy  # 복사 라이브러리
 import pandas as pd
@@ -345,3 +346,13 @@ for i in emotions:
     plt.figure()
     plt.title(label_to_text[i])
     plt.imshow(img, cmap='gray')  # 회색 지정
+
+# 데이터 준비 및 이미지 증강 작업 수행
+# 데이터 프레임을 기능과 레이블로 분할
+X = facialexpression_df[' pixels']
+y = to_categorical(facialexpression_df['emotion'])
+
+# 각각의 정보 확인
+print(X[0])
+
+print(y)
