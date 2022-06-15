@@ -132,11 +132,9 @@ print(y.shape)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 # 20% 테스트 / 80% 학습
 
+
 # 주요 얼굴 포인트 탐지를 위한 심층 잔차 신경망 구축
-
 # 잔차 블럭 정의
-
-
 def res_block(X, filter, stage):
     # Convolutional_block
     X_copy = X
@@ -263,3 +261,19 @@ X = Dense(30, activation='relu')(X)
 # 첫 번째 나만의 모델 생성
 model_1_facialKeyPoints = Model(inputs=X_input, outputs=X)
 model_1_facialKeyPoints.summary()  # 모델 요약본 출력
+
+# 훈련된 주요 얼굴 포인트 감지 모델 성능 평가
+with open('data/detection.json', 'r') as json_file:  # 모델 오픈 detection.json
+    json_savedModel = json_file.read()
+
+# 모델 인식
+model_1_facialKeyPoints = tf.keras.models.model_from_json(json_savedModel)
+model_1_facialKeyPoints.load_weights(
+    'data/weights_keypoint.hdf5')  # 가중치 저장된 파일
+
+# Adam 옵티마이저 사용 해당 프로젝트에 효과적으로 최적화를 할 수 있어 사용
+# adam 옵티마이저 학습률 0.001 설정 후 모델 컴파일
+adam = tf.keras.optimizers.Adam(
+    learning_rate=0.0001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+model_1_facialKeyPoints.compile(
+    loss="mean_squared_error", optimizer=adam, metrics=['accuracy'])
