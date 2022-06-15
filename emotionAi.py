@@ -25,3 +25,12 @@ from tensorflow.keras import backend as K
 from keras import optimizers
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+
+# 데이터 셋 로드
+keyfacial_df = pd.read_csv('data/data.csv')
+# 해당 데이터 셋에는 왼쪽 눈, 오른쪽 눈, 코, 윗입술, 아랫입술 등 15개의 인식 포인트가 있다.
+print(keyfacial_df)
+# 총 2140개의 이미지, 2140개의 데이터 포인트와 31개의 열이 있다.
+
+print(keyfacial_df.info())
+# 이미지를 제외하고 모든 데이터 타입은 float64로 되어있다.
