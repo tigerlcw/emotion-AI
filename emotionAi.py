@@ -54,11 +54,10 @@ keyfacial_df['Image'] = keyfacial_df['Image'].apply(
 print(keyfacial_df['Image'][0].shape)  # 0번째 행을 가져와 96 * 96 변경되었는지 확인
 
 # 이미지 시각화 작업
-# 3행 3열 총 9개의 랜덤 이미지 출력
-fig = plt.figure(figsize=(20, 20))  # figure 사이즈 설정
-
-for i in range(9):
-    ax = fig.add_subplot(3, 3, i + 1)
+# 3행 4열 총 12개의 랜덤 이미지 출력
+fig = plt.figure(figsize=(20, 11))  # figure 사이즈 설정
+for i in range(8):
+    ax = fig.add_subplot(3, 4, i + 1)
     i = np.random.randint(1, len(keyfacial_df))
     plt.imshow(keyfacial_df['Image'][i], cmap='gray')  # 컬러는 회색으로 지정
     for j in range(1, 31, 2):
@@ -442,10 +441,65 @@ model_2_emotion.compile(
 검증 loss를 지켜보고 모델이 학습될 때 학습 데이터세트의 loss가 줄어들면 검증 loss도
 줄어들게 해주는 작업을 수행해야 한다.
 '''
-
 earlystopping = EarlyStopping(
     monitor='val_loss', mode='min', verbose=1, patience=20)
 
 # 검증 loss가 적은 최상의 모델을 저장.
 checkpointer = ModelCheckpoint(
     filepath="data/FacialExpression_weights.hdf5", verbose=1, save_best_only=True)
+
+# 훈련된 얼굴 표정 분류기 모델의 성능 평가
+with open('data/emotion.json', 'r') as json_file:
+    json_savedModel = json_file.read()  # 모델 구조
+
+# load the model architecture
+model_2_emotion = tf.keras.models.model_from_json(json_savedModel)
+model_2_emotion.load_weights('data/weights_emotions.hdf5')  # 학습된 가중치들 로드
+model_2_emotion.compile(
+    optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
+
+# 테스트 정확도 확인
+score = model_2_emotion.evaluate(X_Test, y_Test)
+print('Test 정확도: {}'.format(score[1]))
+
+
+# [최종]
+# 두 모델 결합 (1) 얼굴 포인트 감지 (2) 얼굴 감정 인식
+# 랜덤으로 25개의 이미지로 구성된 그리드를 예측된 감정과 얼굴 포인트 시각화 출력!
+def predict(X_test):
+
+    # 키포인트 모델에서 예측하기
+    df_predict = model_1_facialKeyPoints.predict(X_test)
+
+    # 감정 모델에서 예측하기
+    df_emotion = np.argmax(model_2_emotion.predict(X_test), axis=-1)
+
+    # (856,)에서 (856,1)로 배열 재구성
+    df_emotion = np.expand_dims(df_emotion, axis=1)
+
+    # 예측을 데이터 프레임으로 변환
+    df_predict = pd.DataFrame(df_predict, columns=columns)
+
+    # 예측된 데이터 프레임에 감정 추가
+    df_predict['emotion'] = df_emotion
+
+    return df_predict
+
+
+df_predict = predict(X_test)  # df_predict 선언
+
+fig, axes = plt.subplots(2, 5, constrained_layout=True, figsize=(20, 11))
+axes = axes.ravel()
+for i in range(10):
+    axes[i].imshow(X_test[i].squeeze(), cmap='gray')
+    axes[i].set_title('감정 분석 결과 = {}'.format(
+        label_to_text[df_predict['emotion'][i]]))
+    axes[i].axis('off')
+    for j in range(1, 31, 2):
+        axes[i].plot(df_predict.loc[i][j-1], df_predict.loc[i][j], 'rx')
+'''
+한성대학교 컴퓨터공학부 빅데이터, 웹 공학 트랙
+1971543_이찬우
+2022-01 빅데이터프로그래밍 기말 프로젝트 과제
+'사람 얼굴 이미지에서 감정 분석을 통한 감정 결과 도출'
+'''
