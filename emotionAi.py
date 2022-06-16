@@ -1,6 +1,6 @@
 # 프로젝트에 필요한 라이브러리 셋팅
 # Tensorflow / keras API 활용
-from keras.utils import to_categorical  # 카테고리화
+from tensorflow.keras.utils import to_categorical  # 카테고리화
 import random
 import copy  # 복사 라이브러리
 import pandas as pd
@@ -349,10 +349,28 @@ for i in emotions:
 
 # 데이터 준비 및 이미지 증강 작업 수행
 # 데이터 프레임을 기능과 레이블로 분할
-X = facialexpression_df[' pixels']
-y = to_categorical(facialexpression_df['emotion'])
+X = facialexpression_df[' pixels']  # 입력 데이터 X
+y = to_categorical(facialexpression_df['emotion'])  # 출력 데이터 y
 
 # 각각의 정보 확인
 print(X[0])
 
+# 각각의 이미지 한 장당 하나의 감정만 가지고 있음.
 print(y)
+
+X = np.stack(X, axis=0)
+X = X.reshape(24568, 96, 96, 1)
+
+print(X.shape, y.shape)
+
+
+# 데이터 프레임을 학습, 테스트 및 검증 데이터 프레임으로 분할
+# 90%를 학습에 10%를 테스트에 쓰도록 설정
+# 그다음으로 해 볼 것은 테스팅 데이터를 가지고와서 (X_test, y_test) 반절로 나눈다.
+# 그래서 test_size를 0.5로 설정한다. 즉, 테스팅 데이터를 가지고 와서 X 테스트와 X 검증에 한번 더 나누어 주는 것이죠
+X_train, X_Test, y_train, y_Test = train_test_split(
+    X, y, test_size=0.1, shuffle=True)
+X_val, X_Test, y_val, y_Test = train_test_split(
+    X_Test, y_Test, test_size=0.5, shuffle=True)
+
+# 이미지 전처리
