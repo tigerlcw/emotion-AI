@@ -374,3 +374,19 @@ X_val, X_Test, y_val, y_Test = train_test_split(
     X_Test, y_Test, test_size=0.5, shuffle=True)
 
 # 이미지 전처리
+X_train = X_train/255
+X_val = X_val / 255
+X_Test = X_Test/255
+
+# 이미지 증강 자동으로 처리 (ImageDataGenerator) 사용
+train_datagen = ImageDataGenerator(
+    # 좌우반전 크기 등 하나의 함수로 해결
+    rotation_range=15,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
+    zoom_range=0.1,
+    horizontal_flip=True,
+    fill_mode="nearest")
+
+# 얼굴 표정 분류를 위한 딥 러닝 모델 구축 및 훈련
