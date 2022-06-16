@@ -448,10 +448,4 @@ earlystopping = EarlyStopping(
 
 # 검증 loss가 적은 최상의 모델을 저장.
 checkpointer = ModelCheckpoint(
-    filepath="FacialExpression_weights.hdf5", verbose=1, save_best_only=True)
-
-
-history = model_2_emotion.fit(train_datagen.flow(X_train, y_train, batch_size=64),
-                              validation_data=(X_val, y_val), steps_per_epoch=len(
-                                  X_train) // 64,
-                              epochs=2, callbacks=[checkpointer, earlystopping])
+    filepath="data/FacialExpression_weights.hdf5", verbose=1, save_best_only=True)
