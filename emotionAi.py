@@ -393,3 +393,65 @@ train_datagen = ImageDataGenerator(
     fill_mode="nearest")
 
 # 얼굴 표정 분류를 위한 딥 러닝 모델 구축 및 훈련
+
+# 모델2의 입력 shape는 모델1과 같아야한다.
+input_shape = (96, 96, 1)
+
+# Input tensor shape
+X_input = Input(input_shape)
+
+# Zero-padding
+X = ZeroPadding2D((3, 3))(X_input)
+
+# 1단계
+X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1',
+           kernel_initializer=glorot_uniform(seed=0))(X)
+X = BatchNormalization(axis=3, name='bn_conv1')(X)
+X = Activation('relu')(X)
+X = MaxPooling2D((3, 3), strides=(2, 2))(X)
+
+# 2단계 - 위에서 사용했던 res-block 이용
+X = res_block(X, filter=[64, 64, 256], stage=2)  # 필터사이즈 [64, 64, 256]
+
+# 3단계
+X = res_block(X, filter=[128, 128, 512], stage=3)  # 필터사이즈 [128, 128, 512]
+
+# Average Pooling
+X = AveragePooling2D((4, 4), name='Averagea_Pooling')(X)
+
+# 마지막 레이어
+X = Flatten()(X)
+# 5가지의 감정 인공신경망
+X = Dense(5, activation='softmax', name='Dense_final',
+          kernel_initializer=glorot_uniform(seed=0))(X)
+
+model_2_emotion = Model(inputs=X_input, outputs=X,
+                        name='Resnet18')  # Resnet18 이용
+
+model_2_emotion.summary()
+
+
+# 네트워크 훈련
+model_2_emotion.compile(
+    # 2개 이상의 카테고리가 있으므로 이렇게 설정
+    optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
+
+'''
+데이터를 학습, 테스트, 검증으로 나누었기 때문에 모델 학습을 수행할 시
+검증 데이터세트를 이용한다.
+검증 loss를 지켜보고 모델이 학습될 때 학습 데이터세트의 loss가 줄어들면 검증 loss도
+줄어들게 해주는 작업을 수행해야 한다.
+'''
+
+earlystopping = EarlyStopping(
+    monitor='val_loss', mode='min', verbose=1, patience=20)
+
+# 검증 loss가 적은 최상의 모델을 저장.
+checkpointer = ModelCheckpoint(
+    filepath="FacialExpression_weights.hdf5", verbose=1, save_best_only=True)
+
+
+history = model_2_emotion.fit(train_datagen.flow(X_train, y_train, batch_size=64),
+                              validation_data=(X_val, y_val), steps_per_epoch=len(
+                                  X_train) // 64,
+                              epochs=2, callbacks=[checkpointer, earlystopping])
