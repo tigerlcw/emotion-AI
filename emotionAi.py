@@ -379,6 +379,7 @@ X_val = X_val / 255
 X_Test = X_Test/255
 
 # 이미지 증강 자동으로 처리 (ImageDataGenerator) 사용
+# 사용법 : https://keras.io/api/preprocessing/image/
 train_datagen = ImageDataGenerator(
     # 좌우반전 크기 등 하나의 함수로 해결
     rotation_range=15,
@@ -387,6 +388,8 @@ train_datagen = ImageDataGenerator(
     shear_range=0.1,
     zoom_range=0.1,
     horizontal_flip=True,
+    vertical_flip=True,  # 상하반전
+    brightness_range=[1.1, 1.5],  # 밝기
     fill_mode="nearest")
 
 # 얼굴 표정 분류를 위한 딥 러닝 모델 구축 및 훈련
