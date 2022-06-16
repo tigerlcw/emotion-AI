@@ -1,3 +1,9 @@
+'''
+한성대학교 컴퓨터공학부 빅데이터, 웹 공학 트랙
+1971543_이찬우
+2022-01 빅데이터프로그래밍 기말 프로젝트 과제
+'사람 얼굴 이미지에서 감정 분석을 통한 감정 결과 도출'
+'''
 # 프로젝트에 필요한 라이브러리 셋팅
 # Tensorflow / keras API 활용
 from tensorflow.keras.utils import to_categorical  # 카테고리화
@@ -497,9 +503,3 @@ for i in range(10):
     axes[i].axis('off')
     for j in range(1, 31, 2):
         axes[i].plot(df_predict.loc[i][j-1], df_predict.loc[i][j], 'rx')
-'''
-한성대학교 컴퓨터공학부 빅데이터, 웹 공학 트랙
-1971543_이찬우
-2022-01 빅데이터프로그래밍 기말 프로젝트 과제
-'사람 얼굴 이미지에서 감정 분석을 통한 감정 결과 도출'
-'''
